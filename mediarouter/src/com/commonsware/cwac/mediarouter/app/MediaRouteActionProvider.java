@@ -46,13 +46,6 @@ import java.lang.ref.WeakReference;
  * is possible for the user to discover and select a matching route.
  * </p>
  *
- * <h3>Prerequisites</h3>
- * <p>
- * To use the media route action provider, the activity must be a subclass of
- * ActionBarActivity from the <code>android.support.v7.appcompat</code>
- * support library.  Refer to support library documentation for details.
- * </p>
- *
  * <h3>Example</h3>
  * <p>
  * </p><p>
@@ -65,13 +58,13 @@ import java.lang.ref.WeakReference;
  *         xmlns:app="http://schemas.android.com/apk/res-auto">
  *     &lt;item android:id="@+id/media_route_menu_item"
  *         android:title="@string/media_route_menu_title"
- *         app:showAsAction="always"
- *         app:actionProviderClass="android.support.v7.app.MediaRouteActionProvider"/>
+ *         android:showAsAction="always"
+ *         android:actionProviderClass="com.commonsware.cwac.mediarouter.app.MediaRouteActionProvider"/>
  * &lt;/menu>
  * </pre><p>
  * Then configure the menu and set the route selector for the chooser.
  * </p><pre>
- * public class MyActivity extends ActionBarActivity {
+ * public class MyActivity extends Activity {
  *     private MediaRouter mRouter;
  *     private MediaRouter.Callback mCallback;
  *     private MediaRouteSelector mSelector;
@@ -113,8 +106,7 @@ import java.lang.ref.WeakReference;
  *         getMenuInflater().inflate(R.menu.sample_media_router_menu, menu);
  *
  *         MenuItem mediaRouteMenuItem = menu.findItem(R.id.media_route_menu_item);
- *         MediaRouteActionProvider mediaRouteActionProvider =
- *                 (MediaRouteActionProvider)MenuItemCompat.getActionProvider(mediaRouteMenuItem);
+ *         MediaRouteActionProvider provider = (MediaRouteActionProvider) mediaRouteMenuItem.getActionProvider();
  *         mediaRouteActionProvider.setRouteSelector(mSelector);
  *         return true;
  *     }
@@ -128,213 +120,213 @@ import java.lang.ref.WeakReference;
  * @see #setRouteSelector
  */
 public class MediaRouteActionProvider extends ActionProvider {
-  private static final String TAG = "MediaRouteActionProvider";
+    private static final String TAG = "MediaRouteActionProvider";
 
-  private final MediaRouter mRouter;
-  private final MediaRouterCallback mCallback;
+    private final MediaRouter mRouter;
+    private final MediaRouterCallback mCallback;
 
-  private MediaRouteSelector mSelector = MediaRouteSelector.EMPTY;
-  private MediaRouteDialogFactory mDialogFactory = MediaRouteDialogFactory.getDefault();
-  private MediaRouteButton mButton;
+    private MediaRouteSelector mSelector = MediaRouteSelector.EMPTY;
+    private MediaRouteDialogFactory mDialogFactory = MediaRouteDialogFactory.getDefault();
+    private MediaRouteButton mButton;
 
-  private Context ctxt;
+    private Context ctxt;
 
-  /**
-   * Creates the action provider.
-   *
-   * @param context The context.
-   */
-  public MediaRouteActionProvider(Context context) {
-    super(context);
+    /**
+     * Creates the action provider.
+     *
+     * @param context The context.
+     */
+    public MediaRouteActionProvider(Context context) {
+        super(context);
 
-    this.ctxt=context;
+        this.ctxt=context;
 
-    mRouter = MediaRouter.getInstance(context);
-    mCallback = new MediaRouterCallback(this);
-  }
-
-  /**
-   * Gets the media route selector for filtering the routes that the user can
-   * select using the media route chooser dialog.
-   *
-   * @return The selector, never null.
-   */
-  @NonNull
-  public MediaRouteSelector getRouteSelector() {
-    return mSelector;
-  }
-
-  /**
-   * Sets the media route selector for filtering the routes that the user can
-   * select using the media route chooser dialog.
-   *
-   * @param selector The selector, must not be null.
-   */
-  public void setRouteSelector(@NonNull MediaRouteSelector selector) {
-    if (selector == null) {
-      throw new IllegalArgumentException("selector must not be null");
+        mRouter = MediaRouter.getInstance(context);
+        mCallback = new MediaRouterCallback(this);
     }
 
-    if (!mSelector.equals(selector)) {
-      // FIXME: We currently have no way of knowing whether the action provider
-      // is still needed by the UI.  Unfortunately this means the action provider
-      // may leak callbacks until garbage collection occurs.  This may result in
-      // media route providers doing more work than necessary in the short term
-      // while trying to discover routes that are no longer of interest to the
-      // application.  To solve this problem, the action provider will need some
-      // indication from the framework that it is being destroyed.
-      if (!mSelector.isEmpty()) {
-        mRouter.removeCallback(mCallback);
-      }
-      if (!selector.isEmpty()) {
-        mRouter.addCallback(selector, mCallback);
-      }
-      mSelector = selector;
-      refreshRoute();
-
-      if (mButton != null) {
-        mButton.setRouteSelector(selector);
-      }
-    }
-  }
-
-  /**
-   * Gets the media route dialog factory to use when showing the route chooser
-   * or controller dialog.
-   *
-   * @return The dialog factory, never null.
-   */
-  @NonNull
-  public MediaRouteDialogFactory getDialogFactory() {
-    return mDialogFactory;
-  }
-
-  /**
-   * Sets the media route dialog factory to use when showing the route chooser
-   * or controller dialog.
-   *
-   * @param factory The dialog factory, must not be null.
-   */
-  public void setDialogFactory(@NonNull MediaRouteDialogFactory factory) {
-    if (factory == null) {
-      throw new IllegalArgumentException("factory must not be null");
+    /**
+     * Gets the media route selector for filtering the routes that the user can
+     * select using the media route chooser dialog.
+     *
+     * @return The selector, never null.
+     */
+    @NonNull
+    public MediaRouteSelector getRouteSelector() {
+        return mSelector;
     }
 
-    if (mDialogFactory != factory) {
-      mDialogFactory = factory;
+    /**
+     * Sets the media route selector for filtering the routes that the user can
+     * select using the media route chooser dialog.
+     *
+     * @param selector The selector, must not be null.
+     */
+    public void setRouteSelector(@NonNull MediaRouteSelector selector) {
+        if (selector == null) {
+            throw new IllegalArgumentException("selector must not be null");
+        }
 
-      if (mButton != null) {
-        mButton.setDialogFactory(factory);
-      }
-    }
-  }
+        if (!mSelector.equals(selector)) {
+            // FIXME: We currently have no way of knowing whether the action provider
+            // is still needed by the UI.  Unfortunately this means the action provider
+            // may leak callbacks until garbage collection occurs.  This may result in
+            // media route providers doing more work than necessary in the short term
+            // while trying to discover routes that are no longer of interest to the
+            // application.  To solve this problem, the action provider will need some
+            // indication from the framework that it is being destroyed.
+            if (!mSelector.isEmpty()) {
+                mRouter.removeCallback(mCallback);
+            }
+            if (!selector.isEmpty()) {
+                mRouter.addCallback(selector, mCallback);
+            }
+            mSelector = selector;
+            refreshRoute();
 
-  /**
-   * Gets the associated media route button, or null if it has not yet been created.
-   */
-  @Nullable
-  public MediaRouteButton getMediaRouteButton() {
-    return mButton;
-  }
-
-  /**
-   * Called when the media route button is being created.
-   * <p>
-   * Subclasses may override this method to customize the button.
-   * </p>
-   */
-  public MediaRouteButton onCreateMediaRouteButton() {
-    return new MediaRouteButton(ctxt);
-  }
-
-  @Override
-  @SuppressWarnings("deprecation")
-  public View onCreateActionView() {
-    if (mButton != null) {
-      Log.e(TAG, "onCreateActionView: this ActionProvider is already associated " +
-          "with a menu item. Don't reuse MediaRouteActionProvider instances! " +
-          "Abandoning the old menu item...");
+            if (mButton != null) {
+                mButton.setRouteSelector(selector);
+            }
+        }
     }
 
-    mButton = onCreateMediaRouteButton();
-    mButton.setCheatSheetEnabled(true);
-    mButton.setRouteSelector(mSelector);
-    mButton.setDialogFactory(mDialogFactory);
-    mButton.setLayoutParams(new ViewGroup.LayoutParams(
-        ViewGroup.LayoutParams.WRAP_CONTENT,
-        ViewGroup.LayoutParams.FILL_PARENT));
-    return mButton;
-  }
-
-  @Override
-  public boolean onPerformDefaultAction() {
-    if (mButton != null) {
-      return mButton.showDialog();
+    /**
+     * Gets the media route dialog factory to use when showing the route chooser
+     * or controller dialog.
+     *
+     * @return The dialog factory, never null.
+     */
+    @NonNull
+    public MediaRouteDialogFactory getDialogFactory() {
+        return mDialogFactory;
     }
-    return false;
-  }
 
-  @Override
-  public boolean overridesItemVisibility() {
-    return true;
-  }
+    /**
+     * Sets the media route dialog factory to use when showing the route chooser
+     * or controller dialog.
+     *
+     * @param factory The dialog factory, must not be null.
+     */
+    public void setDialogFactory(@NonNull MediaRouteDialogFactory factory) {
+        if (factory == null) {
+            throw new IllegalArgumentException("factory must not be null");
+        }
 
-  @Override
-  public boolean isVisible() {
-    return mRouter.isRouteAvailable(mSelector,
-        MediaRouter.AVAILABILITY_FLAG_IGNORE_DEFAULT_ROUTE);
-  }
+        if (mDialogFactory != factory) {
+            mDialogFactory = factory;
 
-  private void refreshRoute() {
-    if (Build.VERSION.SDK_INT>=Build.VERSION_CODES.JELLY_BEAN_MR1) {
-      refreshVisibility();
+            if (mButton != null) {
+                mButton.setDialogFactory(factory);
+            }
+        }
     }
-  }
 
-  private static final class MediaRouterCallback extends MediaRouter.Callback {
-    private final WeakReference<MediaRouteActionProvider> mProviderWeak;
+    /**
+     * Gets the associated media route button, or null if it has not yet been created.
+     */
+    @Nullable
+    public MediaRouteButton getMediaRouteButton() {
+        return mButton;
+    }
 
-    public MediaRouterCallback(MediaRouteActionProvider provider) {
-      mProviderWeak = new WeakReference<MediaRouteActionProvider>(provider);
+    /**
+     * Called when the media route button is being created.
+     * <p>
+     * Subclasses may override this method to customize the button.
+     * </p>
+     */
+    public MediaRouteButton onCreateMediaRouteButton() {
+        return new MediaRouteButton(ctxt);
     }
 
     @Override
-    public void onRouteAdded(MediaRouter router, MediaRouter.RouteInfo info) {
-      refreshRoute(router);
+    @SuppressWarnings("deprecation")
+    public View onCreateActionView() {
+        if (mButton != null) {
+            Log.e(TAG, "onCreateActionView: this ActionProvider is already associated " +
+                    "with a menu item. Don't reuse MediaRouteActionProvider instances! " +
+                    "Abandoning the old menu item...");
+        }
+
+        mButton = onCreateMediaRouteButton();
+        mButton.setCheatSheetEnabled(true);
+        mButton.setRouteSelector(mSelector);
+        mButton.setDialogFactory(mDialogFactory);
+        mButton.setLayoutParams(new ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.FILL_PARENT));
+        return mButton;
     }
 
     @Override
-    public void onRouteRemoved(MediaRouter router, MediaRouter.RouteInfo info) {
-      refreshRoute(router);
+    public boolean onPerformDefaultAction() {
+        if (mButton != null) {
+            return mButton.showDialog();
+        }
+        return false;
     }
 
     @Override
-    public void onRouteChanged(MediaRouter router, MediaRouter.RouteInfo info) {
-      refreshRoute(router);
+    public boolean overridesItemVisibility() {
+        return true;
     }
 
     @Override
-    public void onProviderAdded(MediaRouter router, MediaRouter.ProviderInfo provider) {
-      refreshRoute(router);
+    public boolean isVisible() {
+        return mRouter.isRouteAvailable(mSelector,
+                MediaRouter.AVAILABILITY_FLAG_IGNORE_DEFAULT_ROUTE);
     }
 
-    @Override
-    public void onProviderRemoved(MediaRouter router, MediaRouter.ProviderInfo provider) {
-      refreshRoute(router);
+    private void refreshRoute() {
+        if (Build.VERSION.SDK_INT>=Build.VERSION_CODES.JELLY_BEAN_MR1) {
+            refreshVisibility();
+        }
     }
 
-    @Override
-    public void onProviderChanged(MediaRouter router, MediaRouter.ProviderInfo provider) {
-      refreshRoute(router);
-    }
+    private static final class MediaRouterCallback extends MediaRouter.Callback {
+        private final WeakReference<MediaRouteActionProvider> mProviderWeak;
 
-    private void refreshRoute(MediaRouter router) {
-      MediaRouteActionProvider provider = mProviderWeak.get();
-      if (provider != null) {
-        provider.refreshRoute();
-      } else {
-        router.removeCallback(this);
-      }
+        public MediaRouterCallback(MediaRouteActionProvider provider) {
+            mProviderWeak = new WeakReference<MediaRouteActionProvider>(provider);
+        }
+
+        @Override
+        public void onRouteAdded(MediaRouter router, MediaRouter.RouteInfo info) {
+            refreshRoute(router);
+        }
+
+        @Override
+        public void onRouteRemoved(MediaRouter router, MediaRouter.RouteInfo info) {
+            refreshRoute(router);
+        }
+
+        @Override
+        public void onRouteChanged(MediaRouter router, MediaRouter.RouteInfo info) {
+            refreshRoute(router);
+        }
+
+        @Override
+        public void onProviderAdded(MediaRouter router, MediaRouter.ProviderInfo provider) {
+            refreshRoute(router);
+        }
+
+        @Override
+        public void onProviderRemoved(MediaRouter router, MediaRouter.ProviderInfo provider) {
+            refreshRoute(router);
+        }
+
+        @Override
+        public void onProviderChanged(MediaRouter router, MediaRouter.ProviderInfo provider) {
+            refreshRoute(router);
+        }
+
+        private void refreshRoute(MediaRouter router) {
+            MediaRouteActionProvider provider = mProviderWeak.get();
+            if (provider != null) {
+                provider.refreshRoute();
+            } else {
+                router.removeCallback(this);
+            }
+        }
     }
-  }
 }
