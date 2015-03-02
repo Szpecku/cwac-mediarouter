@@ -44,19 +44,20 @@ public class MainActivity extends Activity {
 
   }
 
-  @Override
-  public void onResume() {
-    super.onResume();
 
+
+  @Override
+  public void onStart() {
     router.addCallback(selector, cb,
                        MediaRouter.CALLBACK_FLAG_REQUEST_DISCOVERY);
+    super.onStart();
   }
 
   @Override
-  public void onPause() {
+  public void onStop() {
     router.removeCallback(cb);
 
-    super.onPause();
+    super.onStop();
   }
 
   @Override
